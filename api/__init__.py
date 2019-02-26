@@ -6,6 +6,7 @@ import jwt
 import datetime
 from functools import wraps
 import os
+from decimal import *
 # local imports
 from instance.config import app_config
 
@@ -15,7 +16,7 @@ db = SQLAlchemy()
 
 def create_app(config_name):
 
-    from api.models import Users, Measurements
+    from api.models import Users, Measurements, Plants, Models
 
     api = Flask(__name__, instance_relative_config=True)
     api.config.from_object(app_config[config_name])
@@ -48,10 +49,8 @@ def create_app(config_name):
     @api.route('/user', methods=['GET'])
     @token_required
     def get_all_users(current_user):
-        # we don't use current user because I didn't want to but if you want to make this an admin only func you can
-        # just un comment the two lines below
-        # if not current_user.admin:
-            # return jsonify({'message': 'Cannot perform that function!'})
+        if not current_user.admin:
+            return jsonify({'message': 'Cannot perform that function!'})
         users = Users.query.all()
 
         output = []
@@ -102,8 +101,8 @@ def create_app(config_name):
     @api.route('/user/<public_id>', methods=['PUT'])
     @token_required
     def promote_user(current_user, public_id):
-        # if not current_user.admin:
-            # return jsonify({'message': 'Cannot perform that function!'})
+        if not current_user.admin:
+            return jsonify({'message': 'Cannot perform that function!'})
 
         user = Users.query.filter_by(public_id=public_id).first()
 
@@ -126,8 +125,7 @@ def create_app(config_name):
         if not user:
             return jsonify({'message': 'No user found!'})
 
-        # db.session.delete(user)
-        # db.session.commit()
+        # check out Users.delete function in the models
         user.delete()
 
         return jsonify({'message': 'The user has been deleted!'})
@@ -151,6 +149,59 @@ def create_app(config_name):
             return jsonify({'token': token.decode('UTF-8')})
 
         return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
+
+    @api.route('/user/plant', methods=['DELETE', 'POST'])
+    @token_required
+    def handle_plants(current_user):
+
+        if request.method == "POST":
+            # get data in from request  as json object
+            data_in = request.get_json()
+            # create a new plant
+            new_plant = Plants(plant_name=data_in['plantname'], plant_type=data_in['planttype'],
+                               sensor_id=data_in['sensorid'], public_id=current_user.public_id)
+            # save plant in the db
+            new_plant.save()
+            # return a message to the user letting them no it was successful
+            return jsonify({'message': 'plant created'})
+
+        if request.method == "DELETE":
+            # get the data in same as above
+            data_in = request.get_json()
+            # do a query for the plant
+            plant_query = Plants.query.filter_by(sensor_id=data_in['sensorid']).first()
+            # delete from db and save
+            plant_query.delete()
+
+            return jsonify({'message': 'plant deleted'})
+
+    @api.route('/sensor/datain', methods=['POST'])
+    @token_required
+    def handle_incoming_data(current_user):
+
+        data_in = request.get_json()
+        light = False
+        if data_in['light'] == '1':
+            light = True
+        # make a measurement
+        new_measur = Measurements(username=current_user.user_name, sensor_name=data_in['sensorname'],
+                                  temp=Decimal(data_in['temp']), soil_m=int(data_in['soilm']),
+                                  humidity=Decimal(data_in['humidity']), light=light)
+
+        new_measur.save()
+
+        return jsonify({'message': 'data received'})
+
+    @api.route('/sensor/mostrecent/entry', methods=['GET'])
+    @token_required
+    def get_most_recent(current_user):
+
+        measurement = Measurements.get_most_recent()
+
+        return jsonify({'temp': str(measurement.temp),
+                        'soilm': str(measurement.soil_m),
+                        'humidity': str(measurement.humidity),
+                        'light': str(measurement.light)})
 
     return api
 

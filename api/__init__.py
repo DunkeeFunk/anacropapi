@@ -23,7 +23,7 @@ def create_app(config_name):
     api.config.from_object(app_config[config_name])
     api.config.from_pyfile('config.py')
     api.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db.init_app(api)
+    db.init_app(api)  # bind the database to the app
     # machine learning class
     ml = MLWrapper()
     ml.wrangle_data()
@@ -232,7 +232,15 @@ def create_app(config_name):
         knn, accur = ml.knn_classify(Decimal(data_in['temp']),
                                      Decimal(data_in['humidity']),
                                      light)
-        return jsonify({'prediction': str(knn), 'accuracy': accur})
+        svm, acc = ml.svm_classify(Decimal(data_in['temp']),
+                                   Decimal(data_in['humidity']),
+                                   light)
+        rf, a = ml.random_forrest_classify(Decimal(data_in['temp']),
+                                           Decimal(data_in['humidity']),
+                                           light)
+        return jsonify({'knn_prediction': str(knn), 'KNN_accuracy': accur,
+                        'svm_prediction': str(svm), 'SVM_accuracy': acc,
+                        'rf_prediction': str(rf), 'RF_accuracy': a})
 
     return api
 

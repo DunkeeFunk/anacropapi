@@ -9,6 +9,7 @@ import os
 from decimal import *
 # local imports
 from instance.config import app_config
+from ml.wrangler import MLWrapper
 
 # initialize sql-alchemy
 db = SQLAlchemy()
@@ -23,6 +24,10 @@ def create_app(config_name):
     api.config.from_pyfile('config.py')
     api.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(api)
+    # machine learning class
+    ml = MLWrapper()
+    ml.wrangle_data()
+    ml.model_trainer()
 
     def token_required(f):
         @wraps(f)
@@ -202,6 +207,32 @@ def create_app(config_name):
                         'soilm': str(measurement.soil_m),
                         'humidity': str(measurement.humidity),
                         'light': str(measurement.light)})
+
+    @api.route('/modeltrainer', methods=['GET'])
+    @token_required
+    def model_trainer(current_user):
+        # this route should only be called by an admin
+        if not current_user.admin:
+            return jsonify({'message': 'Cannot perform that function!'})
+
+        try:
+            ml.model_trainer()
+            return jsonify({'message': "models successfully trained and pickles dumped !"})
+        except:
+            return jsonify({'message': "model training failed !"})
+
+    @api.route('/predict', methods=['POST'])
+    @token_required
+    def make_prediction(current_user):
+        data_in = request.get_json()
+
+        light = False
+        if data_in['light'] == 'True':
+            light = True
+        knn, accur = ml.knn_classify(Decimal(data_in['temp']),
+                                     Decimal(data_in['humidity']),
+                                     light)
+        return jsonify({'prediction': str(knn), 'accuracy': accur})
 
     return api
 

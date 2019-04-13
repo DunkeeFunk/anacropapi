@@ -1,4 +1,4 @@
-.virt
+.virt/*
 .idea
 .__pycache__
 # Elastic Beanstalk Files

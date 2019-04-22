@@ -160,41 +160,44 @@ def create_app(config_name):
     def handle_plants(current_user):
 
         if request.method == "POST":
-            # get data in from request  as json object
-            data_in = request.get_json()
-            # create a new plant
-            new_plant = Plants(plant_name=data_in['plantname'], plant_type=data_in['planttype'],
-                               sensor_id=data_in['sensorid'], public_id=current_user.public_id)
-            # save plant in the db
-            new_plant.save()
-            # return a message to the user letting them no it was successful
-            return jsonify({'message': 'plant created'})
+            try:
+                # get data in from request  as json object
+                data_in = request.get_json()
+                # create a new plant
+                new_plant = Plants(plant_name=data_in['plantname'], plant_type=data_in['planttype'],
+                                   sensor_id=data_in['sensorid'], public_id=current_user.public_id)
+                # save plant in the db
+                new_plant.save()
+                # return a message to the user letting them no it was successful
+                return jsonify({'message': 'plant created'})
+            except:
+                return jsonify({'message': 'plant not created check db schema!'})
 
         if request.method == "DELETE":
-            # get the data in same as above
-            data_in = request.get_json()
-            # do a query for the plant
-            plant_query = Plants.query.filter_by(sensor_id=data_in['sensorid']).first()
-            # delete from db and save
-            plant_query.delete()
+            try:
+                # get the data in same as above
+                data_in = request.get_json()
+                # do a query for the plant
+                plant_query = Plants.query.filter_by(sensor_id=data_in['sensorid']).first()
+                # delete from db and save
+                plant_query.delete()
 
-            return jsonify({'message': 'plant deleted'})
+                return jsonify({'message': 'plant deleted'})
+            except:
+                return jsonify({'message': 'plant not deleted check db schema!'})
 
     @api.route('/sensor/datain', methods=['POST'])
     @token_required
     def handle_incoming_data(current_user):
-
         data_in = request.get_json()
         light = False
         if data_in['light'] == '1':
             light = True
         # make a measurement
-        new_measur = Measurements(username=current_user.user_name, sensor_name=data_in['sensorname'],
+        new_measur = Measurements(username=data_in['sensorid'], sensor_name=data_in['sensorname'],
                                   temp=Decimal(data_in['temp']), soil_m=int(data_in['soilm']),
                                   humidity=Decimal(data_in['humidity']), light=light)
-
         new_measur.save()
-
         return jsonify({'message': 'data received'})
 
     @api.route('/sensor/mostrecent/entry', methods=['GET'])

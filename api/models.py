@@ -48,7 +48,7 @@ class Plants(db.Model):
     plant_type = db.Column(db.String(50))
     sensor_id = db.Column(db.String(12), unique=True)  # Foreign key for measurements
     measurements = db.relationship('Measurements', backref='plants', lazy=True)
-    models = db.relationship('Models', backref='plants', lazy=True) # new code
+    models = db.relationship('Models', backref='plants', lazy=True)  # new code
 
     def __init__(self, plant_name, plant_type, sensor_id, public_id):
         self.plant_name = plant_name

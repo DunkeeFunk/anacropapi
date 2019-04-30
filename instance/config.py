@@ -17,7 +17,7 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     """Configurations for Testing, with a separate test database."""
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = "postgresql://change_username:change_password@localhost:5432/anacroptestdb"
+    SQLALCHEMY_DATABASE_URI = "postgresql://change_username:change_ls password@localhost:5432/anacroptestdb"
     DEBUG = True
 
 

@@ -190,6 +190,7 @@ def create_app(config_name):
     @token_required
     def handle_incoming_data(current_user):
         data_in = request.get_json()
+
         light = False
         if data_in['light'] == '1':
             light = True
